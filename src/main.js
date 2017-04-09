@@ -5,6 +5,10 @@ import App from './App'
 import router from './router'
 import VueResource from 'vue-resource'
 Vue.use(VueResource);
+Vue.http.interceptors.push((request, next) => {
+  request.credentials = true;
+  next();
+});
 
 Vue.config.productionTip = false
 

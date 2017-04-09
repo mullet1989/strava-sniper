@@ -11,7 +11,7 @@
     name: 'hello',
     mounted: function () {
       // GET /someUrl
-      this.$http.get('https://strava-in-go.herokuapp.com/')
+      this.$http.get('http://localhost:4000/?callback_url=http://localhost:8080/#/kom')
         .then(response => {
           // get body data
           this.authorizeButtonHtml = response.body;
