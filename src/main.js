@@ -4,6 +4,9 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import VueResource from 'vue-resource'
+import Vuex from 'vuex'
+
+Vue.use(Vuex);
 Vue.use(VueResource);
 Vue.http.interceptors.push((request, next) => {
   request.credentials = true;
@@ -12,10 +15,21 @@ Vue.http.interceptors.push((request, next) => {
 
 Vue.config.productionTip = false
 
-/* eslint-disable no-new */
+const store = new Vuex.Store({
+  state: {
+    koms: [],
+  },
+  mutations: {
+    saveKoms (state, koms) {
+      state.koms = koms;
+    }
+  }
+});
+
 new Vue({
   el: '#app',
   router,
+  store,
   template: '<App/>',
   components: { App }
 })
