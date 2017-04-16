@@ -2,7 +2,7 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <div v-html="authorizeButtonHtml"></div>
-    <router-link to="/name">Go to name</router-link>
+    <router-link to="/kom">Next</router-link>
   </div>
 </template>
 

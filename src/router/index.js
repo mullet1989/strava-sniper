@@ -17,7 +17,7 @@ export default new Router({
             name: 'Kom',
             component: Kom,
             beforeEnter: (to, from, next) => {
-                console.log(`going to the koms route`);
+                // console.log(`going to the koms route`);
                 next();
             }
         }, {

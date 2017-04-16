@@ -17,11 +17,23 @@ Vue.config.productionTip = false
 
 const store = new Vuex.Store({
   state: {
+    allKoms: [],
     koms: [],
   },
   mutations: {
     saveKoms (state, koms) {
       state.koms = koms;
+    },
+    saveAllKoms (state, koms) {
+      state.allKoms = koms;
+    }
+  },
+  getters: {
+    getAllKoms: state => {
+      return state.allKoms;
+    },
+    getKoms: state => {
+      return state.koms;
     }
   }
 });
