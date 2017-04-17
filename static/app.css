@@ -1670,7 +1670,6 @@ label {
   display: inline-block;
   max-width: 100%;
   margin-bottom: 5px;
-  font-weight: bold
 }
 
 input[type="search"] {
@@ -1678,8 +1677,7 @@ input[type="search"] {
 }
 
 input[type="radio"], input[type="checkbox"] {
-  margin: 4px 0 0;
-  margin-top: 1px \9;
+  margin: 4px;
   line-height: normal
 }
 
@@ -5962,10 +5960,6 @@ legend {
 fieldset {
   border: none;
   margin: 30px 0
-}
-
-label {
-  margin-bottom: 10px
 }
 
 .radio, .checkbox {
@@ -12373,4 +12367,8 @@ footer {
 
 html {
   overflow-x: hidden
+}
+
+.redB {
+  background-color: #ececec;
 }

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="margin-bottom: 50px;">
     <h1>{{ msg }}</h1>
     <div style="text-align: left; margin: 0 10%;">
       <table>
@@ -15,23 +15,27 @@
           <th>
             Date
           </th>
-        <tr v-for="kom in koms">
-          <td>
-            <input :id="kom.name" type="checkbox" :name="kom.name" :value="kom.segment.id" v-model="checkedKoms"/>
-          </td>
-          <td>
-            <label :for="kom.name">{{ kom.name }}</label>
-          </td>
-          <td>
-            <span v-if="kom.segment.activity_type === 'Run'" class="app-icon icon-run icon-dark icon-lg"></span>
-            <span v-else class="app-icon icon-ride icon-dark icon-lg"></span></td>
-          <td>
-            <label :for="kom.name">{{ kom.start_date_local }}</label>
-          </td>
         </tr>
+        <tr v-for="(kom, index) in koms" :class="index%2 == 0 ? 'redB' : ''">
+            <td>
+              <input :id="kom.name" type="checkbox" :name="kom.name" :value="kom.segment.id" v-model="checkedKoms"/>
+            </td>
+            <td>
+              <label :for="kom.name">{{ kom.name }}</label>
+            </td>
+            <td>
+              <label :for="kom.name">
+                <span v-if="kom.segment.activity_type === 'Run'" class="app-icon icon-run icon-dark icon-lg"></span>
+                <span v-else class="app-icon icon-ride icon-dark icon-lg"></span>
+              </label>
+            </td>
+            <td>
+              <label :for="kom.name">{{ new Date(kom.start_date_local).toLocaleDateString() }}</label>
+            </td>
+          </tr>
       </table>
     </div>
-    <router-link to="/confirm">Next</router-link>
+    <router-link class="btn btn-primary btn-sm" to="/confirm">Next</router-link>
   </div>
 </template>
 
