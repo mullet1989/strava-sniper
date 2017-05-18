@@ -1,13 +1,28 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>strava-sniper</title>
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"/>
-    <link rel="stylesheet" type="text/css" href="/app.css" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <!-- built files will be auto injected -->
-  </body>
+<head>
+  <meta charset="utf-8">
+  <title>strava-sniper</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"/>
+  <link rel="stylesheet" type="text/css" href="/app.css"/>
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase.js"></script>
+<script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyCeKIgZKvAwRdqM9_vJPYSrFK5UTQiOjhA",
+    authDomain: "strava-sniper.firebaseapp.com",
+    databaseURL: "https://strava-sniper.firebaseio.com",
+    projectId: "strava-sniper",
+    storageBucket: "strava-sniper.appspot.com",
+    messagingSenderId: "367662790815"
+  };
+  firebase.initializeApp(config);
+</script>
+
+<div id="app"></div>
+<!-- built files will be auto injected -->
+</body>
 </html>

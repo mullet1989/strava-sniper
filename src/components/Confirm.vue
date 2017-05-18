@@ -1,37 +1,64 @@
 <template>
-  <div>
-    <div>
-      Please enter the email address to which you would like to notified
-    </div>
-    <form v-on:submit.prevent>
-      <input v-model="email" type="text"/> <br>
-      <div style="margin: 10px;">How often would you like to be notified?</div>
-      <div>
-        <input type="radio" v-model="frequency" value="daily" id="daily"><label for="daily">Daily</label> <br>
-        <input type="radio" v-model="frequency" value="weekly" id="weekly" checked><label for="weekly">Weekly</label>
-        <br>
-        <input type="radio" v-model="frequency" value="monthly" id="monthly"><label for="monthly">Monthly</label> <br>
-        <input class="btn btn-primary btn-sm" v-on:click="submitForm" type="submit">
-      </div>
-    </form>
-    <div style="margin: 10%;">
-      <!-- Send notification button -->
-      <button
-        :disabled="loading"
-        @click="sendNotification"
-        type="button" class="btn btn-success btn-send">
-        Send Notification
-      </button>
 
-      <!-- Enable/Disable push notifications -->
-      <button
-        @click="togglePush"
-        :disabled="pushButtonDisabled || loading"
-        type="button" class="btn btn-primary"
-        :class="{ 'btn-primary': !isPushEnabled, 'btn-danger': isPushEnabled }">
-        {{ isPushEnabled ? 'Disable' : 'Enable' }} Push Notifications
-      </button>
+  <div>
+
+    <div id="permission_div" v-show="showPermissionDiv">
+      <h4>You are currently not subscribed</h4>
+      <p id="token" :style="{ 'color': permissionColor }">{{ tokenContent }}</p>
+      <!--<button class="mdl-button mdl-js-button mdl-button&#45;&#45;raised mdl-button&#45;&#45;colored"-->
+      <!--v-on:click="appRequestPermission">Request Permission-->
+      <!--</button>-->
     </div>
+
+
+    <div style="margin: 20px;">
+      <span>Please enter the email address to which you would like to notified</span>
+      <form v-on:submit.prevent>
+        <input v-model="email" type="text" placeholder="email" style="margin: 5px; padding: 5px;"/>
+        <div style="margin-top: 20px;">
+          <span>How often would you like to be notified?</span>
+          <div style="margin-top: 20px;">
+            <input type="radio" v-model="frequency" value="daily" id="daily"><label for="daily">Daily</label> <br>
+            <input type="radio" v-model="frequency" value="weekly" id="weekly" checked><label
+            for="weekly">Weekly</label>
+            <br>
+            <input type="radio" v-model="frequency" value="monthly" id="monthly"><label for="monthly">Monthly</label>
+            <br>
+            <input class="btn btn-primary btn-sm" v-on:click="submitForm" type="submit"
+                   style="min-width: 40%; margin: 20px;">
+          </div>
+        </div>
+      </form>
+    </div>
+
+
+    <main class="mdl-layout__content mdl-color--grey-100">
+      <div class="mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-grid">
+
+        <!-- Container for the Table of content -->
+        <div
+          class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-cell--12-col-desktop">
+          <div class="mdl-card__supporting-text mdl-color-text--grey-600">
+            <!-- div to display the generated Instance ID token -->
+            <div id="token_div" style="display: none;">
+              <h4>Instance ID Token</h4>
+              <p id="token" style="word-break: break-all;"></p>
+              <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                      v-on:click="deleteToken">Delete Token
+              </button>
+            </div>
+
+            <!-- div to display messages received by this app. -->
+            <ul id="messages">
+              <li v-for="message in messageContent">
+                {{ message }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </main>
   </div>
 </template>
 
@@ -39,191 +66,146 @@
   export default {
     name: 'confirm',
     mounted: function () {
-      this.registerServiceWorker()
+      const that = this;
+      this.$data.messaging = firebase.messaging();
+      this.$data.messaging.onTokenRefresh(function () {
+        this.$data.messaging.getToken()
+          .then(function (refreshedToken) {
+            console.log('Token refreshed.');
+            that.setTokenSentToServer(false);
+            that.sendTokenToServer(refreshedToken);
+            that.resetUI();
+          })
+          .catch(function (err) {
+            console.log('Unable to retrieve refreshed token ', err);
+            that.tokenContent = `Unable to retrieve refreshed token , ${err}`;
+          });
+      });
+      this.$data.messaging.onMessage(function (payload) {
+        console.log("Message received. ", payload);
+        that.messageContent.push(payload);
+      });
+      this.resetUI();
+    },
+    watch: {
+      frequency: function (val) {
+        this.appRequestPermission();
+      }
     },
     methods: {
       submitForm() {
+        const that = this;
         this.$http.post("http://localhost:4000/confirm", {
           "email": this.email,
           "frequency": this.frequency,
-          "koms": this.$store.getters.getKoms
         }).then(response => {
-          console.log(response.bodyText);
+          console.log(response);
+          that.messageContent.push(response);
         })
       },
-      /**
-       * Register the service worker.
-       */
-      registerServiceWorker () {
-        if (!('serviceWorker' in navigator)) {
-          console.log('Service workers aren\'t supported in this browser.')
-          return
-        }
-        navigator.serviceWorker.register('/sw.js').then(() => this.initialiseServiceWorker())
+      deleteToken() {
+        const that = this;
+        this.$data.messaging.getToken()
+          .then(function (currentToken) {
+            that.messaging.deleteToken(currentToken)
+              .then(function () {
+                console.log('Token deleted.');
+                that.setTokenSentToServer(false);
+                that.resetUI();
+              })
+              .catch(function (err) {
+                console.log('Unable to delete token. ', err);
+              });
+          })
+          .catch(function (err) {
+            console.log('Error retrieving Instance ID token. ', err);
+            that.tokenContent = `Error retrieving Instance ID token. ${err}`;
+          });
       },
-      initialiseServiceWorker () {
-        if (!('showNotification' in ServiceWorkerRegistration.prototype)) {
-          console.log('Notifications aren\'t supported.')
-          return
-        }
-        if (Notification.permission === 'denied') {
-          console.log('The user has blocked notifications.')
-          return
-        }
-        if (!('PushManager' in window)) {
-          console.log('Push messaging isn\'t supported.')
-          return
-        }
-        navigator.serviceWorker.ready.then(registration => {
-          registration.pushManager.getSubscription()
-            .then(subscription => {
-              this.pushButtonDisabled = false
-              if (!subscription) {
-                return
-              }
-              this.updateSubscription(subscription)
-              this.isPushEnabled = true
-            })
-            .catch(e => {
-              console.log('Error during getSubscription()', e)
-            })
-        })
-      },
-      /**
-       * Subscribe for push notifications.
-       */
-      subscribe () {
-        navigator.serviceWorker.ready.then(registration => {
-          const options = {userVisibleOnly: true}
-          const publicKey = `BEWKLFN06g7h-_4sR77m6ERDRI7oHvDwTVj_HAEDcMbVam7Y61n3kHVNgdBGzxrtei6cxPimUeKouIOHGY8oBiU`;
-          if (publicKey) {
-            options.applicationServerKey = this.urlBase64ToUint8Array(publicKey)
-          }
-          registration.pushManager.subscribe(options)
-            .then(subscription => {
-              this.isPushEnabled = true
-              this.pushButtonDisabled = false
-              this.updateSubscription(subscription)
-            })
-            .catch(e => {
-              if (Notification.permission === 'denied') {
-                console.log('Permission for Notifications was denied')
-                this.pushButtonDisabled = true
-              } else {
-                console.log('Unable to subscribe to push.', e)
-                this.pushButtonDisabled = false
-              }
-            })
-        })
-      },
-      /**
-       * Unsubscribe from push notifications.
-       */
-      unsubscribe () {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.pushManager.getSubscription().then(subscription => {
-            if (!subscription) {
-              this.isPushEnabled = false
-              this.pushButtonDisabled = false
-              return
+      resetUI() {
+        const that = this;
+        this.messageContent = [];
+        this.tokenContent = "loading...";
+        this.$data.messaging.getToken()
+          .then(function (currentToken) {
+            if (currentToken) {
+              that.sendTokenToServer(currentToken);
+              that.updateUIForPushEnabled(currentToken);
+            } else {
+              // Show permission request.
+              console.log('No Instance ID token available. Request permission to generate one.');
+              // Show permission UI.
+              that.updateUIForPushPermissionRequired();
+              that.setTokenSentToServer(false);
             }
-            subscription.unsubscribe().then(() => {
-              this.deleteSubscription(subscription)
-              this.isPushEnabled = false
-              this.pushButtonDisabled = false
-            }).catch(e => {
-              console.log('Unsubscription error: ', e)
-              this.pushButtonDisabled = false
-            })
-          }).catch(e => {
-            console.log('Error thrown while unsubscribing.', e)
           })
-        })
+          .catch(function (err) {
+            console.log('An error occurred while retrieving token. ', err);
+            that.tokenContent = `Error retrieving Instance ID token.  ${err.message}`;
+            that.setTokenSentToServer(false);
+          });
       },
-      /**
-       * Toggle push notifications subscription.
-       */
-      togglePush () {
-        if (this.isPushEnabled) {
-          this.unsubscribe()
+      updateUIForPushPermissionRequired() {
+        this.showTokenDiv = false;
+        this.showPermissionDiv = true;
+      },
+      updateUIForPushEnabled(currentToken) {
+        this.showTokenDiv = true;
+        this.showPermissionDiv = false;
+        this.tokenContent = currentToken;
+      },
+      appRequestPermission: function () {
+        console.log('Requesting permission...');
+        const that = this;
+        this.$data.messaging.requestPermission()
+          .then(function () {
+            console.log('Notification permission granted.');
+            that.resetUI();
+          })
+          .catch(function (err) {
+            console.log('Unable to get permission to notify.', err);
+          });
+      },
+      sendTokenToServer(currentToken) {
+        if (!this.isTokenSentToServer()) {
+          console.log('Sending token to server...');
+          this.$http.post("http://localhost:4000/token", {
+            "token": currentToken
+          }).then(response => {
+            console.log("success!");
+          }, reponse => {
+            console.log("error");
+          });
+          this.setTokenSentToServer(true);
         } else {
-          this.subscribe()
+          console.log('Token already sent to server so won\'t send it again ' +
+            'unless it changes');
         }
       },
-      /**
-       * Send a request to the server to update user's subscription.
-       *
-       * @param {PushSubscription} subscription
-       */
-      updateSubscription (subscription) {
-        const key = subscription.getKey('p256dh')
-        const token = subscription.getKey('auth')
-        const data = {
-          endpoint: subscription.endpoint,
-          key: key ? btoa(String.fromCharCode.apply(null, new Uint8Array(key))) : null,
-          token: token ? btoa(String.fromCharCode.apply(null, new Uint8Array(token))) : null
+      isTokenSentToServer() {
+        if (window.localStorage.getItem('sentToServer') == 1) {
+          return true;
         }
-        this.loading = true
-        this.$http.post('/subscriptions', data)
-          .then(() => {
-            this.loading = false
-          })
+        return false;
       },
-      /**
-       * Send a requst to the server to delete user's subscription.
-       *
-       * @param {PushSubscription} subscription
-       */
-      deleteSubscription (subscription) {
-        this.loading = true
-        this.$http.post('/subscriptions/delete', {endpoint: subscription.endpoint})
-          .then(() => {
-            this.loading = false
-          })
+      setTokenSentToServer(sent) {
+        window.localStorage.setItem('sentToServer', sent ? 1 : 0);
       },
-      /**
-       * Send a request to the server for a push notification.
-       */
-      sendNotification () {
-        this.loading = true
-        this.$http.post('/notifications')
-          .catch(error => console.log(error))
-          .then(() => {
-            this.loading = false
-          })
-      },
-      /**
-       * https://github.com/Minishlink/physbook/blob/02a0d5d7ca0d5d2cc6d308a3a9b81244c63b3f14/app/Resources/public/js/app.js#L177
-       *
-       * @param  {String} base64String
-       * @return {Uint8Array}
-       */
-      urlBase64ToUint8Array (base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-          .replace(/\-/g, '+')
-          .replace(/_/g, '/')
-        const rawData = window.atob(base64)
-        const outputArray = new Uint8Array(rawData.length)
-        for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i)
-        }
-        return outputArray
-      }
     },
-    data: () => ({
-      email: "",
-      frequency: "",
-      loading: false,
-      isPushEnabled: false,
-      pushButtonDisabled: true
-    })
+    data: () => {
+      return {
+        email: "",
+        frequency: "",
+        messaging: {},
+        tokenDivId: 'token_div',
+        showTokenDiv: false,
+        tokenContent: "",
+        permissionDivId: 'permission_div',
+        showPermissionDiv: true,
+        permissionColor: "red",
+        messageContent: [],
+      }
+    }
   }
 </script>
-
-<style scoped>
-  .frequency {
-    text-align: left;
-  }
-</style>
 
